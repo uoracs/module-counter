@@ -4,6 +4,8 @@ This tool simply writes log loading entries into `/var/log/module.log`.
 
 ## Install from Source
 
+Installing from source requires that you have Go 1.21.5+ installed.
+
 - Clone the repository
 - Navigate into the repository
 - `make`
