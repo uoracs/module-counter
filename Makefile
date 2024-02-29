@@ -2,19 +2,19 @@
 all: build
 
 build:
-    @go build -o bin/module-counter cmd/module-counter/main.go
+    @go build -o bin/module-logger cmd/module-logger/main.go
 
 run: build
-    @go run cmd/module-counter/main.go
+    @go run cmd/module-logger/main.go
 
 install: build
-    @cp bin/module-counter /usr/local/bin/module-counter
+    @cp bin/module-logger /usr/local/bin/module-logger
 
 container:
-    @docker build -t module-counter .
+    @docker build -t module-logger .
 
 handler:
-    @go build -o handler cmd/module-counter/main.go
+    @go build -o handler cmd/module-logger/main.go
 
 clean:
-    @rm -f bin/module-counter /usr/local/bin/module-counter
+    @rm -f bin/module-logger /usr/local/bin/module-logger
