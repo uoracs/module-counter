@@ -121,7 +121,7 @@ func (mc *ModuleCache) Clean() {
 func Log(path string, ma *ModuleActivation) error {
 	fileHandle, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		return fmt.Errorf("error opening log file for appending: %v\n", err)
+		return fmt.Errorf("error opening log file for appending: %v", err)
 	}
 	logger := slog.New(slog.NewJSONHandler(fileHandle, nil))
 
