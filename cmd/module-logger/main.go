@@ -18,8 +18,14 @@ type ModuleActivation struct {
 	Expiration     time.Time `json:"expiration"`
 }
 
-func NewModuleActivation(username string, packageName string, packageVersion string) ModuleActivation {
-	return ModuleActivation{Username: username, PackageName: packageName, PackageVersion: packageVersion, Timestamp: time.Now(), Expiration: time.Now().Add(time.Duration(debounceTimeoutSeconds) * time.Second)}
+func NewModuleActivation(username string, packageName string, packageVersion string) *ModuleActivation {
+	defaultDebounceTimeoutSeconds := 300
+	return &ModuleActivation{Username: username, PackageName: packageName, PackageVersion: packageVersion, Timestamp: time.Now(), Expiration: time.Now().Add(time.Duration(defaultDebounceTimeoutSeconds) * time.Second)}
+}
+
+func (ma *ModuleActivation) WithExpirationTimeout(seconds int) *ModuleActivation {
+	ma.Expiration = ma.Timestamp.Add(time.Duration(seconds) * time.Second)
+	return ma
 }
 
 type ModuleCache struct {
@@ -78,13 +84,13 @@ func (mc *ModuleCache) Save() {
 		panic(fmt.Sprintf("failed to marshal json data from cache: %v", err))
 	}
 
-	err = os.WriteFile(cacheFilePath, jsonData, 0600)
+	err = os.WriteFile(mc.Path, jsonData, 0600)
 	if err != nil {
 		panic(fmt.Sprintf("unable to open cache for writing: %s: %v", mc.Path, err))
 	}
 }
 
-func (mc ModuleCache) ReadyToWrite(ma ModuleActivation) bool {
+func (mc *ModuleCache) ReadyToWrite(ma *ModuleActivation) bool {
 	for _, mca := range mc.Activations {
 		if mca.Username == ma.Username && mca.PackageName == ma.PackageName && mca.PackageVersion == ma.PackageVersion {
 			if ma.Timestamp.Before(mca.Expiration) {
@@ -95,8 +101,8 @@ func (mc ModuleCache) ReadyToWrite(ma ModuleActivation) bool {
 	return true
 }
 
-func (mc *ModuleCache) Add(ma ModuleActivation) {
-	mc.Activations = append(mc.Activations, ma)
+func (mc *ModuleCache) Add(ma *ModuleActivation) {
+	mc.Activations = append(mc.Activations, *ma)
 }
 
 func (mc *ModuleCache) Clean() {
@@ -109,7 +115,7 @@ func (mc *ModuleCache) Clean() {
 	mc.Activations = unexpiredActivations
 }
 
-func Log(path string, ma ModuleActivation) {
+func Log(path string, ma *ModuleActivation) {
 	fileHandle, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Printf("error opening log file for appending: %v\n", err)
@@ -135,8 +141,7 @@ func main() {
 	}
 
 	mc := NewModuleCache().WithCacheFilePath(*cacheFilePathFlag).WithDebounceTimeout(*debounceTimeoutFlag).Load()
-
-	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag)
+	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag).WithExpirationTimeout(*debounceTimeoutFlag)
 
 	if mc.ReadyToWrite(ma) {
 		Log(*logFilePathFlag, ma)
