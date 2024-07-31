@@ -55,40 +55,42 @@ func (mc *ModuleCache) WithCacheFilePath(path string) *ModuleCache {
 	return mc
 }
 
-func (mc *ModuleCache) Load() *ModuleCache {
+func (mc *ModuleCache) Load() (*ModuleCache, error) {
 	cacheFile, err := os.Open(mc.Path)
 	if err != nil {
 		// not found means cache should just load empty
 		// other errors? ehhhh
-		return mc
+		return mc, nil
 	}
 	defer cacheFile.Close()
 
 	bytes, err := io.ReadAll(cacheFile)
 	if err != nil {
-		panic(fmt.Sprintf("cache file exists but is unreadable %s: %v", mc.Path, err))
+		return nil, fmt.Errorf("cache file exists but is unreadable %s: %v", mc.Path, err)
 	}
 
 	var activations []ModuleActivation
 	err = json.Unmarshal(bytes, &activations)
 	if err != nil {
-		panic("failed to unmarshal cache")
+		return nil, fmt.Errorf("failed to unmarshal cache")
 	}
 
 	mc.Activations = append(mc.Activations, activations...)
-	return mc
+	return mc, nil
 }
 
-func (mc *ModuleCache) Save() {
+func (mc *ModuleCache) Save() error {
 	jsonData, err := json.Marshal(mc.Activations)
 	if err != nil {
-		panic(fmt.Sprintf("failed to marshal json data from cache: %v", err))
+		return fmt.Errorf("failed to marshal json data from cache: %v", err)
 	}
 
 	err = os.WriteFile(mc.Path, jsonData, 0600)
 	if err != nil {
-		panic(fmt.Sprintf("unable to open cache for writing: %s: %v", mc.Path, err))
+		return fmt.Errorf("unable to open cache for writing: %s: %v", mc.Path, err)
 	}
+
+	return nil
 }
 
 func (mc *ModuleCache) ReadyToWrite(ma *ModuleActivation) bool {
@@ -116,18 +118,25 @@ func (mc *ModuleCache) Clean() {
 	mc.Activations = unexpiredActivations
 }
 
-func Log(path string, ma *ModuleActivation) {
+func Log(path string, ma *ModuleActivation) error {
 	fileHandle, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		fmt.Printf("error opening log file for appending: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error opening log file for appending: %v\n", err)
 	}
 	logger := slog.New(slog.NewTextHandler(fileHandle, nil))
 
 	logger.Info("loaded module", "user", ma.Username, "package", ma.PackageName, "version", ma.PackageVersion)
+
+	return nil
+}
+
+func PrintErrorAndQuit(err error) {
+	fmt.Printf("module-logger error: %v\n", err)
+	os.Exit(1)
 }
 
 func main() {
+	var err error
 	var userFlag = flag.String("user", "", "username")
 	var packageFlag = flag.String("package", "", "package name")
 	var versionFlag = flag.String("version", "", "package version")
@@ -143,14 +152,25 @@ func main() {
 
 	DebounceTimoutSeconds = *debounceTimeoutFlag
 
-	mc := NewModuleCache(*cacheFilePathFlag).Load()
+	mc, err := NewModuleCache(*cacheFilePathFlag).Load()
+	if err != nil {
+		PrintErrorAndQuit(err)
+	}
+
 	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag)
 
 	if mc.ReadyToWrite(ma) {
-		Log(*logFilePathFlag, ma)
+		err = Log(*logFilePathFlag, ma)
+		if err != nil {
+			PrintErrorAndQuit(err)
+		}
 		mc.Add(ma)
 	}
 
 	mc.Clean()
-	mc.Save()
+
+	err = mc.Save()
+	if err != nil {
+		PrintErrorAndQuit(err)
+	}
 }
