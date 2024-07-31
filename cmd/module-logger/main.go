@@ -71,15 +71,13 @@ func (mc *ModuleCache) Save() {
 	}
 }
 
-func (mc ModuleCache) ReadyToWrite(m ModuleActivation) bool {
-	for _, ma := range mc.Activations {
-		if ma.Username != m.Username || ma.PackageName != m.PackageName || ma.PackageVersion != m.PackageVersion {
-			continue
-		}
-		// matched all three, compare timestamp
-		if m.Timestamp.Before(ma.Expiration) {
-			fmt.Println("not ready to write")
-			return false
+func (mc ModuleCache) ReadyToWrite(ma ModuleActivation) bool {
+	for _, mca := range mc.Activations {
+		if mca.Username == ma.Username && mca.PackageName == ma.PackageName && mca.PackageVersion == ma.PackageVersion {
+			if ma.Timestamp.Before(mca.Expiration) {
+				fmt.Println("not ready to write")
+				return false
+			}
 		}
 	}
 	fmt.Println("ready to write")
@@ -92,12 +90,14 @@ func (mc *ModuleCache) Add(ma ModuleActivation) {
 
 func (mc *ModuleCache) Clean() {
 	var unexpiredActivations []ModuleActivation
+	fmt.Printf("activations before: %v\n", mc.Activations)
 	for _, ma := range mc.Activations {
-		if time.Now().After(ma.Expiration) {
+		if time.Now().Before(ma.Expiration) {
 			unexpiredActivations = append(unexpiredActivations, ma)
 		}
 	}
 	mc.Activations = unexpiredActivations
+	fmt.Printf("activations after: %v\n", mc.Activations)
 }
 
 func Log(ma ModuleActivation) {
