@@ -32,7 +32,7 @@ type ModuleCache struct {
 }
 
 func NewModuleCache(path string) *ModuleCache {
-	return &ModuleCache{Path: path}
+	return &ModuleCache{Path: path, Activations: []ModuleActivation{}}
 }
 
 func (mc *ModuleCache) Load() *ModuleCache {
@@ -77,11 +77,13 @@ func (mc ModuleCache) ReadyToWrite(m ModuleActivation) bool {
 			continue
 		}
 		// matched all three, compare timestamp
-		if m.Timestamp.After(ma.Expiration) {
-			return true
+		if m.Timestamp.Before(ma.Expiration) {
+			fmt.Println("not ready to write")
+			return false
 		}
 	}
-	return false
+	fmt.Println("ready to write")
+	return true
 }
 
 func (mc *ModuleCache) Add(ma ModuleActivation) {
@@ -128,6 +130,6 @@ func main() {
 		mc.Add(ma)
 	}
 
-	mc.Save()
 	mc.Clean()
+	mc.Save()
 }
