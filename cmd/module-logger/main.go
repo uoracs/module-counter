@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+var (
+	DebounceTimoutSeconds int
+	LogFilePath           string
+)
+
 type ModuleActivation struct {
 	Username       string    `json:"username"`
 	PackageName    string    `json:"package_name"`
@@ -19,8 +24,7 @@ type ModuleActivation struct {
 }
 
 func NewModuleActivation(username string, packageName string, packageVersion string) *ModuleActivation {
-	defaultDebounceTimeoutSeconds := 300
-	return &ModuleActivation{Username: username, PackageName: packageName, PackageVersion: packageVersion, Timestamp: time.Now(), Expiration: time.Now().Add(time.Duration(defaultDebounceTimeoutSeconds) * time.Second)}
+	return &ModuleActivation{Username: username, PackageName: packageName, PackageVersion: packageVersion, Timestamp: time.Now(), Expiration: time.Now().Add(time.Duration(DebounceTimoutSeconds) * time.Second)}
 }
 
 func (ma *ModuleActivation) WithExpirationTimeout(seconds int) *ModuleActivation {
@@ -34,13 +38,10 @@ type ModuleCache struct {
 	Activations            []ModuleActivation
 }
 
-func NewModuleCache() *ModuleCache {
-	defaultCacheFilePath := "/var/run/module-logger-cache.json"
-	defaultDebounceTimeoutSeconds := 300
+func NewModuleCache(path string) *ModuleCache {
 	return &ModuleCache{
-		Path:                   defaultCacheFilePath,
-		DebounceTimeoutSeconds: defaultDebounceTimeoutSeconds,
-		Activations:            []ModuleActivation{},
+		Path:        path,
+		Activations: []ModuleActivation{},
 	}
 }
 
@@ -140,8 +141,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	mc := NewModuleCache().WithCacheFilePath(*cacheFilePathFlag).WithDebounceTimeout(*debounceTimeoutFlag).Load()
-	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag).WithExpirationTimeout(*debounceTimeoutFlag)
+	DebounceTimoutSeconds = *debounceTimeoutFlag
+
+	mc := NewModuleCache(*cacheFilePathFlag).Load()
+	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag)
 
 	if mc.ReadyToWrite(ma) {
 		Log(*logFilePathFlag, ma)
