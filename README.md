@@ -16,7 +16,7 @@ Installing from source requires that you have Go 1.21.5+ installed.
 Grab the latest release from Github, unarchive it, and drop it somewhere useful
 like `/usr/local/sbin/module-logger`.
 
-Due to it writing to `/var/log/`, it must be owned by root and have the setuid
+Due to it writing to shared locations, it must be owned by root and have the setuid
 bit set to allow any user to run it:
 
 ```bash
