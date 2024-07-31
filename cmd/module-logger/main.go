@@ -123,7 +123,7 @@ func Log(path string, ma *ModuleActivation) error {
 	if err != nil {
 		return fmt.Errorf("error opening log file for appending: %v\n", err)
 	}
-	logger := slog.New(slog.NewTextHandler(fileHandle, nil))
+	logger := slog.New(slog.NewJSONHandler(fileHandle, nil))
 
 	logger.Info("loaded module", "user", ma.Username, "package", ma.PackageName, "version", ma.PackageVersion)
 
