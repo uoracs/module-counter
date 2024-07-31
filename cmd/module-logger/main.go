@@ -132,8 +132,8 @@ func main() {
 	var packageFlag = flag.String("package", "", "package name")
 	var versionFlag = flag.String("version", "", "package version")
 	var debounceTimeoutFlag = flag.Int("debounceSeconds", 300, "timeout in seconds to not register duplicate activations")
-	var cacheFilePathFlag = flag.String("cacheFilePath", "/var/run/module-logger-cache.json", "path for the module logger cache")
-	var logFilePathFlag = flag.String("logFilePath", "/var/log/module-logger.log", "path for the module logger log file")
+	var cacheFilePathFlag = flag.String("cacheFilePath", "/gpfs/t2/module-logger/module-logger-cache.json", "path for the module logger cache")
+	var logFilePathFlag = flag.String("logFilePath", "/gpfs/t2/module-logger/module-logger.log", "path for the module logger log file")
 	flag.Parse()
 
 	if *userFlag == "" || *packageFlag == "" || *versionFlag == "" {
