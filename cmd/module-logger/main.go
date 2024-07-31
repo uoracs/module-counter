@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-var logFilePath = "/var/log/module-logger.log"
-var cacheFilePath = "/var/run/module-logger-cache.json"
-var debounceTimeoutSeconds = 5 // 5min
-
 type ModuleActivation struct {
 	Username       string    `json:"username"`
 	PackageName    string    `json:"package_name"`
@@ -27,12 +23,29 @@ func NewModuleActivation(username string, packageName string, packageVersion str
 }
 
 type ModuleCache struct {
-	Path        string
-	Activations []ModuleActivation
+	Path                   string
+	DebounceTimeoutSeconds int
+	Activations            []ModuleActivation
 }
 
-func NewModuleCache(path string) *ModuleCache {
-	return &ModuleCache{Path: path, Activations: []ModuleActivation{}}
+func NewModuleCache() *ModuleCache {
+	defaultCacheFilePath := "/var/run/module-logger-cache.json"
+	defaultDebounceTimeoutSeconds := 300
+	return &ModuleCache{
+		Path:                   defaultCacheFilePath,
+		DebounceTimeoutSeconds: defaultDebounceTimeoutSeconds,
+		Activations:            []ModuleActivation{},
+	}
+}
+
+func (mc *ModuleCache) WithDebounceTimeout(seconds int) *ModuleCache {
+	mc.DebounceTimeoutSeconds = seconds
+	return mc
+}
+
+func (mc *ModuleCache) WithCacheFilePath(path string) *ModuleCache {
+	mc.Path = path
+	return mc
 }
 
 func (mc *ModuleCache) Load() *ModuleCache {
@@ -96,8 +109,8 @@ func (mc *ModuleCache) Clean() {
 	mc.Activations = unexpiredActivations
 }
 
-func Log(ma ModuleActivation) {
-	fileHandle, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+func Log(path string, ma ModuleActivation) {
+	fileHandle, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Printf("error opening log file for appending: %v\n", err)
 		os.Exit(1)
@@ -111,6 +124,9 @@ func main() {
 	var userFlag = flag.String("user", "", "username")
 	var packageFlag = flag.String("package", "", "package name")
 	var versionFlag = flag.String("version", "", "package version")
+	var debounceTimeoutFlag = flag.Int("debounceSeconds", 300, "timeout in seconds to not register duplicate activations")
+	var cacheFilePathFlag = flag.String("cacheFilePath", "/var/run/module-logger.cache.json", "path for the module logger cache")
+	var logFilePathFlag = flag.String("logFilePath", "/var/log/module-logger.log", "path for the module logger log file")
 	flag.Parse()
 
 	if *userFlag == "" || *packageFlag == "" || *versionFlag == "" {
@@ -118,11 +134,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	mc := NewModuleCache(cacheFilePath).Load()
+	mc := NewModuleCache().WithCacheFilePath(*cacheFilePathFlag).WithDebounceTimeout(*debounceTimeoutFlag).Load()
+
 	ma := NewModuleActivation(*userFlag, *packageFlag, *versionFlag)
 
 	if mc.ReadyToWrite(ma) {
-		Log(ma)
+		Log(*logFilePathFlag, ma)
 		mc.Add(ma)
 	}
 
