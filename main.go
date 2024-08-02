@@ -30,11 +30,6 @@ func NewModuleActivation(username string, packageName string, packageVersion str
 	}
 }
 
-func (ma *ModuleActivation) WithExpirationTimeout(seconds int) *ModuleActivation {
-	ma.Expiration = ma.Timestamp.Add(time.Duration(seconds) * time.Second)
-	return ma
-}
-
 type ModuleCache struct {
 	Path        string
 	Activations []ModuleActivation
