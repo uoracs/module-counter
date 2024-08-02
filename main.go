@@ -68,7 +68,7 @@ func (mc *ModuleCache) Load() (*ModuleCache, error) {
 	var activations []ModuleActivation
 	err = json.Unmarshal(bytes, &activations)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cache")
+		return nil, fmt.Errorf("failed to unmarshal cache: %v", err)
 	}
 
 	mc.Activations = append(mc.Activations, activations...)
