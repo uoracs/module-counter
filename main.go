@@ -89,17 +89,6 @@ func (mc *ModuleCache) Save() error {
 	return nil
 }
 
-func (mc *ModuleCache) ReadyToWrite(ma *ModuleActivation) bool {
-	for _, mca := range mc.Activations {
-		if mca.Username == ma.Username && mca.PackageName == ma.PackageName && mca.PackageVersion == ma.PackageVersion {
-			if ma.Timestamp.Before(mca.Expiration) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func (mc *ModuleCache) Add(ma *ModuleActivation) {
 	mc.Activations = append(mc.Activations, *ma)
 }
@@ -112,6 +101,17 @@ func (mc *ModuleCache) Clean() {
 		}
 	}
 	mc.Activations = unexpiredActivations
+}
+
+func (mc *ModuleCache) ReadyToWrite(ma *ModuleActivation) bool {
+	for _, mca := range mc.Activations {
+		if mca.Username == ma.Username && mca.PackageName == ma.PackageName && mca.PackageVersion == ma.PackageVersion {
+			if ma.Timestamp.Before(mca.Expiration) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func GetLogFileHandle(path string) (io.Writer, error) {
@@ -132,6 +132,11 @@ func PrintErrorAndExit(err error) {
 	os.Exit(1)
 }
 
+func PrintUsageAndExit() {
+	fmt.Println("Usage: module-logger --user <username> --package <package> --version <version> --modulefilepath <path>")
+	os.Exit(1)
+}
+
 type runArgs struct {
 	user           string
 	packageName    string
@@ -147,11 +152,6 @@ func (a runArgs) IsValid() bool {
 		return true
 	}
 	return false
-}
-
-func PrintUsageAndExit() {
-	fmt.Println("Usage: module-logger --user <username> --package <package> --version <version> --modulefilepath <path>")
-	os.Exit(1)
 }
 
 func Run(args runArgs) {
