@@ -148,7 +148,7 @@ type runArgs struct {
 }
 
 func (a runArgs) IsValid() bool {
-	if a.user != "" && a.packageName != "" && a.packageVersion != "" && a.moduleFilePath != "" {
+	if a.user != "" && a.packageName != "" && a.packageVersion != "" {
 		return true
 	}
 	return false

@@ -41,6 +41,13 @@ func TestRunArgsIsValid(t *testing.T) {
 				packageName:    "testpackage2",
 				packageVersion: "testversion2",
 			},
+			true,
+		},
+		{
+			runArgs{
+				packageName:    "testpackage2",
+				packageVersion: "testversion2",
+			},
 			false,
 		},
 	}
