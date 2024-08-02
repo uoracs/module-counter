@@ -18,7 +18,7 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-    main: ./cmd/module-logger/main.go
+    main: ./main.go
 
 archives:
   - format: tar.gz
